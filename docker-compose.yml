@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: lolzup_redis
+    restart: unless-stopped
+    # Тут также поменять порт для редиса
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  bot:
+    build: .
+    container_name: lolzup_bot
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - .env
+      # если у вас отличимый url редиса
+    environment:
+      - REDIS_URL=redis://redis:6380/0
+    volumes:
+      - ./data:/app/data
+    command: [ "uv", "run", "main.py" ]
+
+volumes:
+  redis_data:
