@@ -49,9 +49,6 @@ services:
       - redis
     env_file:
       - .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/lolzup
     command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler" ]
 
 volumes:
