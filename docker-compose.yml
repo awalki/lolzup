@@ -20,7 +20,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ./data:/app/data
+      - ./data:/data
     command: [ "uv", "run", "main.py" ]
 
   worker:
@@ -34,7 +34,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ./data:/app/data
+      - ./data:/data
     command: [ "uv", "run", "taskiq", "worker", "tkq:broker" ]
 
   scheduler:
@@ -48,7 +48,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     volumes:
-      - ./data:/app/data
+      - ./data:/data
     command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler" ]
 
 volumes:
