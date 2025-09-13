@@ -9,6 +9,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lolzup_network
 
   redis:
     image: redis:7-alpine
@@ -17,6 +19,8 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    networks:
+      - lolzup_network
 
   bot:
     build: .
@@ -28,6 +32,8 @@ services:
     env_file:
       - .env
     command: [ "uv", "run", "main.py" ]
+    networks:
+      - lolzup_network
 
   worker:
     build: .
@@ -39,6 +45,8 @@ services:
     env_file:
       - .env
     command: [ "uv", "run", "taskiq", "worker", "tkq:broker" ]
+    networks:
+      - lolzup_network
 
   scheduler:
     build: .
@@ -50,7 +58,13 @@ services:
     env_file:
       - .env
     command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler" ]
+    networks:
+      - lolzup_network
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  lolzup_network:
+    driver: bridge

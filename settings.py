@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     lolz_token: str
     bot_token: str
     admin_id: int
-    redis_url: str = "redis://localhost:6379/0"
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/lolzup"
+    redis_url: str = "redis://redis:6379/0"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/lolzup"
 
 
 settings = Settings()
