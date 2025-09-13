@@ -2,7 +2,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram_dialog import Window, Dialog, DialogManager
 from aiogram_dialog.widgets.input import TextInput, ManagedTextInput
-from aiogram_dialog.widgets.kbd import Start, Group, Select, Button, Back
+from aiogram_dialog.widgets.kbd import Start, Select, Button, Back, Column
 from aiogram_dialog.widgets.text import Const, Multi, List, Format, Case
 
 from repo import Repo
@@ -113,7 +113,7 @@ my_threads_window = Window(
             items="threads",
         ),
     ),
-    Group(
+    Column(
         Select(
             Format("{item.thread_id}"),
             id="thread_id",
@@ -122,6 +122,7 @@ my_threads_window = Window(
             on_click=on_select
         )
     ),
+    Start(Const("Назад"), id="main", state=MainMenuSG.main),
     state=MainMenuSG.my_threads,
     getter=getter,
 )
