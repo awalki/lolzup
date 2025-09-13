@@ -4,7 +4,6 @@ import logging
 from aiogram import Bot
 from taskiq import TaskiqDepends
 
-from repo import Repo
 from settings import forum, settings
 from tkq import broker, redis_source
 
@@ -28,10 +27,7 @@ async def rerun_bump(thread_id: str):
     thread = await forum.threads.get(thread_id)
 
     data = thread.json()
-    thread_name = data["thread"]["thread_title"]
     next_bump_timestamp = data["thread"]["permissions"]["bump"]["next_available_time"]
-
-    await Repo.create_thread(int(thread_id), thread_name)
 
     if next_bump_timestamp is None:
         logging.info("Тему можно поднять сейчас, поднимаем!")

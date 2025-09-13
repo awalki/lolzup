@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.kbd import Start, Group, Select, Button, Back
 from aiogram_dialog.widgets.text import Const, Multi, List, Format, Case
 
 from repo import Repo
+from settings import forum
 from tasks import rerun_bump
 
 
@@ -19,7 +20,12 @@ class MainMenuSG(StatesGroup):
 
 async def success_handler(message: Message, widget: ManagedTextInput, dialog_manager: DialogManager, text: str) -> None:
     thread_id = dialog_manager.find("thread_id").get_value()
+    thread = await forum.threads.get(thread_id)
 
+    data = thread.json()
+    thread_name = data["thread"]["thread_title"]
+
+    await Repo.create_thread(int(thread_id), thread_name)
     await rerun_bump(str(thread_id))
 
     await dialog_manager.done()
