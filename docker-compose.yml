@@ -17,12 +17,39 @@ services:
       - redis
     env_file:
       - .env
-      # если у вас отличимый url редиса
     environment:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./data:/app/data
     command: [ "uv", "run", "main.py" ]
+
+  worker:
+    build: .
+    container_name: lolzup_worker
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+    command: [ "uv", "run", "taskiq", "worker", "tkq:broker" ]
+
+  scheduler:
+    build: .
+    container_name: lolzup_scheduler
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+    command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler" ]
 
 volumes:
   redis_data:
