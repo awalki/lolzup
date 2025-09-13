@@ -18,7 +18,8 @@ async def bump_task(thread_id: str, bot: Bot = TaskiqDepends()) -> None:
 
         await bot.send_message(settings.admin_id, f"Тема {thread_id} была успешно поднята, задача перезапущена")
     except Exception as e:
-        logging.error(e)
+        logging.error("Произошла непредвиденная ошибка при выполнении таски, пробуем еще раз через 15 секунд", e)
+        await asyncio.sleep(15)
         await rerun_bump(thread_id)
 
 
