@@ -2,9 +2,9 @@ from sqlalchemy import BigInteger
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-engine = create_async_engine(
-    url="sqlite+aiosqlite:///data/lolzup.db", echo=False
-)
+from settings import settings
+
+engine = create_async_engine(settings.database_url, echo=False)
 
 async_session = async_sessionmaker(bind=engine, expire_on_commit=True)
 

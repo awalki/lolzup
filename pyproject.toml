@@ -7,7 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "aiogram>=3.22.0",
     "aiogram-dialog>=2.4.0",
-    "aiosqlite>=0.21.0",
     "sqlalchemy>=2.0.43",
     "taskiq>=0.11.18",
     "taskiq-aiogram>=0.3.1",
@@ -15,4 +14,5 @@ dependencies = [
     "lolzteam",
     "pydantic-settings>=2.10.1",
     "pydantic>=2.11.8",
+    "asyncpg>=0.30.0",
 ]

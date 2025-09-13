@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: lolzup_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lolzup
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   redis:
     image: redis:7-alpine
     container_name: lolzup_redis
@@ -14,13 +27,13 @@ services:
     container_name: lolzup_bot
     restart: unless-stopped
     depends_on:
+      - postgres
       - redis
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./data:/data
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/lolzup
     command: [ "uv", "run", "main.py" ]
 
   worker:
@@ -28,13 +41,13 @@ services:
     container_name: lolzup_worker
     restart: unless-stopped
     depends_on:
+      - postgres
       - redis
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./data:/data
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/lolzup
     command: [ "uv", "run", "taskiq", "worker", "tkq:broker" ]
 
   scheduler:
@@ -42,14 +55,15 @@ services:
     container_name: lolzup_scheduler
     restart: unless-stopped
     depends_on:
+      - postgres
       - redis
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./data:/data
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/lolzup
     command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler" ]
 
 volumes:
+  postgres_data:
   redis_data:
