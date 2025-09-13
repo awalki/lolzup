@@ -2,13 +2,13 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 WORKDIR /app
 
+RUN mkdir -p /app/data
+
 COPY pyproject.toml uv.lock ./
 
 RUN uv sync --frozen --no-dev
 
 COPY . .
-
-RUN mkdir -p /app/data
 
 EXPOSE 8000
 
