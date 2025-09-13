@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 engine = create_async_engine(
-    url="sqlite+aiosqlite:///lolzup.db", echo=False
+    url="sqlite+aiosqlite:///app/data/lolzup.db", echo=False
 )
 
 async_session = async_sessionmaker(bind=engine, expire_on_commit=True)
