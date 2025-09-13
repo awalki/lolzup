@@ -42,13 +42,6 @@ async def on_select(callback, widget, manager, item_id: str):
     await manager.switch_to(MainMenuSG.current_thread)
 
 
-def is_enabled(data: dict, case: Case, manager: DialogManager):
-    item = data.get("thread")
-    if item:
-        return item.enabled
-    return False
-
-
 async def on_delete(callback: CallbackQuery, button: Button,
                     manager: DialogManager):
     thread_id = manager.dialog_data.get("selected_thread_id")
@@ -94,7 +87,7 @@ current_thread_window = Window(
                 True: Const("Автоподнятие: 🟢"),
                 False: Const("Автоподнятие: 🔴")
             },
-            selector=is_enabled,
+            selector=F["thread"].enabled,
         ),
     ),
     Button(
@@ -103,7 +96,7 @@ current_thread_window = Window(
                 True: Const("Отключить автоподнятие"),
                 False: Const("Включить автоподнятие")
             },
-            selector=is_enabled,
+            selector=F["thread"].enabled,
         ),
         id="toggle_bump",
         on_click=on_toggle_bump,
