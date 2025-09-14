@@ -38,12 +38,13 @@ async def rerun_bump(thread_id: str):
             await bump_task.kiq(str(thread_id))
         else:
             logging.info("Тема в КД, ждем")
-            eta = datetime.datetime.fromtimestamp(next_bump_timestamp) + datetime.timedelta(seconds=15)
+            eta = datetime.datetime.fromtimestamp(next_bump_timestamp, tz=datetime.UTC) + datetime.timedelta(seconds=15)
 
-            await bump_task.kicker().with_schedule_id(str(thread_id)).schedule_by_time(
+            schedule = await bump_task.kicker().with_schedule_id(str(thread_id)).schedule_by_time(
                 redis_source,
                 eta,
             )
+            logging.info(f"Таска запущена {schedule.id}. Выполнится: {eta} по UTC")
     except Exception as e:
         logging.error("Произошла непредвиденная ошибка при попытке запуска таски, пробуем еще раз через 15 секунд", e)
         await asyncio.sleep(15)

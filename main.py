@@ -23,9 +23,6 @@ async def setup_taskiq(bot: Bot, *_args, **_kwargs):
     if not broker.is_worker_process:
         logging.info("Setting up taskiq")
         await broker.startup()
-        await redis_source.startup()
-        await scheduler.startup()
-
 
 @dp.shutdown()
 async def shutdown_taskiq(bot: Bot, *_args, **_kwargs):
