@@ -59,7 +59,7 @@ services:
       - redis
     env_file:
       - .env
-    command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler", "--tasks-pattern 'tasks.py'" ]
+    command: [ "uv", "run", "taskiq", "scheduler", "tkq:scheduler", "--fs-discover", "--tasks-pattern", "tasks.py" ]
     networks:
       - lolzup_network
 
