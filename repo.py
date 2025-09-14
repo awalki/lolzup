@@ -19,6 +19,15 @@ class Repo:
             return new_thread
 
     @staticmethod
+    async def thread_exists(thread_id: int) -> bool:
+        async with async_session() as sess:
+            stmt = select(
+                select(1).select_from(Thread).where(Thread.thread_id == thread_id).exists()
+            )
+            return bool(await sess.scalar(stmt))
+
+
+    @staticmethod
     async def get_threads():
         async with async_session() as sess:
             threads = await sess.scalars(select(Thread))

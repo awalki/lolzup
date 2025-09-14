@@ -26,6 +26,11 @@ async def success_handler(message: Message, widget: ManagedTextInput, dialog_man
     data = thread.json()
     thread_name = data["thread"]["thread_title"]
 
+    if await Repo.thread_exists(int(thread_id)):
+        await message.answer("Данная тема уже существует в БД")
+        await dialog_manager.done()
+        return
+
     await Repo.create_thread(int(thread_id), thread_name)
     await rerun_bump(str(thread_id))
 
