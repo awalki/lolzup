@@ -46,7 +46,7 @@ services:
       - redis
     env_file:
       - .env
-    command: [ "uv", "run", "taskiq", "worker", "tkq:broker" ]
+    command: [ "uv", "run", "taskiq", "worker", "tkq:broker", "--fs-discover", "--tasks-pattern", "tasks.py" ]
     networks:
       - lolzup_network
 

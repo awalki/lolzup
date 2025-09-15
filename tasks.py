@@ -44,7 +44,7 @@ async def rerun_bump(thread_id: str):
                 redis_source,
                 eta,
             )
-            logging.info(f"Таска запущена {schedule.id}. Выполнится: {eta} по UTC")
+            logging.info(f"Таска запущена {schedule.schedule_id}. Выполнится: {eta} по UTC")
     except Exception as e:
         logging.error("Произошла непредвиденная ошибка при попытке запуска таски, пробуем еще раз через 15 секунд", e)
         await asyncio.sleep(15)
