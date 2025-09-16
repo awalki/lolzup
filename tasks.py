@@ -43,6 +43,7 @@ async def rerun_bump(thread_id: str):
             schedule = await bump_task.kicker().with_schedule_id(str(thread_id)).schedule_by_time(
                 redis_source,
                 eta,
+                str(thread_id)
             )
             logging.info(f"Таска запущена {schedule.schedule_id}. Выполнится: {eta} по UTC")
     except Exception as e:
