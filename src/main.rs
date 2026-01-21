@@ -127,6 +127,10 @@ async fn main() {
         .expect("BOT_TOKEN must be set in .env");
     let lolz_token = env::var("LOLZ_TOKEN")
         .expect("LOLZ_TOKEN must be set in .env");
+    let admin_id: i64 = env::var("ADMIN_ID")
+        .expect("ADMIN_ID must be set")
+        .parse()
+        .expect("ADMIN_ID must be a valid integer");
 
     let bot = Bot::new(&*bot_token);
 
@@ -155,6 +159,11 @@ async fn main() {
         if let Ok(response) = bot.get_updates(&update_params).await {
             for update in response.result {
                 if let UpdateContent::Message(message) = update.content {
+                    if message.chat.id != admin_id {
+                        update_params.offset = Some(i64::from(update.update_id) + 1);
+                        continue;
+                    }
+
                     handle_message(message, &context).await;
                 }
                 update_params.offset = Some(i64::from(update.update_id) + 1);
