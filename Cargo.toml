@@ -1,0 +1,23 @@
+[package]
+name = "LolzUpReborn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = {features = ["full"], version = "1.49.0"}
+frankenstein = { version = "0.46.1", features = ["client-reqwest", "trait-async"] }
+reqwest = {version = "0.13.1", features = ["json"]}
+jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
+serde_json = "1.0.149"
+serde = { version = "1.0.228", features = ["derive"] }
+effectum = "0.7.0"
+time = "0.3.45"
+dotenvy = "0.15.7"
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+codegen-units = 1
+lto = "fat"
+strip = "debuginfo"
