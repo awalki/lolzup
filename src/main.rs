@@ -88,7 +88,7 @@ async fn bump_job(job: RunningJob, context: Arc<JobContext>) -> Result<(), Error
         .await
     {
         println!("Error bumping thread: {}", e);
-        return Ok(());
+        return Err(Error::Timeout)
     }
 
     if let Ok(thread) = context
