@@ -6,7 +6,7 @@ pub mod scheduler;
 use crate::command::Command;
 use crate::common::send_message;
 use crate::lolz::Lolz;
-use effectum::{Error, Job, JobRunner, Queue, RunningJob, Worker};
+use effectum::{Error, Job, JobRunner, JobState, Queue, RunningJob, Worker};
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::GetUpdatesParams;
@@ -42,10 +42,7 @@ async fn is_job_exists(context: &JobContext, thread_id: &str) -> bool {
     match context.queue.get_jobs_by_name(name, 1).await {
         Ok(jobs) => {
             if let Some(job) = jobs.first() {
-                if format!("{:?}", job.state) == "Cancelled" {
-                    return false;
-                }
-                return true;
+                return job.state == JobState::Pending || job.state == JobState::Running;
             }
             false
         }
