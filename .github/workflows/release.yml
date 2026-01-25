@@ -12,6 +12,8 @@ jobs:
   build:
     name: Build for ${{ matrix.target }}
     runs-on: ubuntu-latest
+    env:
+      BIN_NAME: LolzUpReborn
     strategy:
       matrix:
         target:
@@ -38,22 +40,20 @@ jobs:
       - name: Package Binaries
         shell: bash
         run: |
-          BIN_NAME="LolzUpReborn"
           STAGING="release_assets"
           mkdir -p $STAGING
           
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp "target/${{ matrix.target }}/release/$BIN_NAME.exe" "$STAGING/"
-            cd $STAGING && zip "../$BIN_NAME-${{ matrix.target }}.zip" *
+            cp "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}.exe" "$STAGING/"
+            cd $STAGING && zip "../${{ env.BIN_NAME }}-${{ matrix.target }}.zip" *
           else
-            cp "target/${{ matrix.target }}/release/$BIN_NAME" "$STAGING/"
-            cd $STAGING && tar czf "../$BIN_NAME-${{ matrix.target }}.tar.gz" *
+            cp "target/${{ matrix.target }}/release/${{ env.BIN_NAME }}" "$STAGING/"
+            cd $STAGING && tar czf "../${{ env.BIN_NAME }}-${{ matrix.target }}.tar.gz" *
           fi
 
       - name: Upload Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            my_app-${{ matrix.target }}.*
+          files: ${{ env.BIN_NAME }}-${{ matrix.target }}.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
