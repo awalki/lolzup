@@ -12,7 +12,7 @@ use crate::common::{escape_md, send_message};
 use crate::error::LolzUpError;
 use crate::lolz::lolz::LolzHttpClient;
 use crate::scheduler::{Scheduler, Task};
-use chrono::{Timelike, Utc};
+use chrono::{Utc};
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::GetUpdatesParams;
