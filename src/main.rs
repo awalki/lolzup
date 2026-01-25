@@ -8,7 +8,7 @@ pub mod scheduler;
 
 use crate::bump::BumpService;
 use crate::command::Command;
-use crate::common::{escape_md, send_message};
+use crate::common::{send_message};
 use crate::error::LolzUpError;
 use crate::lolz::lolz::LolzHttpClient;
 use crate::scheduler::{Scheduler, Task};
@@ -174,7 +174,7 @@ async fn process_list(message: Box<Message>, context: Arc<AppContext>) -> Result
                 let link = format!("https://lolz.live/threads/{}", task.thread_id);
                 let time = task.run_at.naive_local().to_string();
 
-                format!("{} \\- Will bump at {}", escape_md(&link), escape_md(&time))
+                format!("{} \\- Will bump at {}", &link, &time)
             })
             .collect::<Vec<_>>()
             .join("\n");

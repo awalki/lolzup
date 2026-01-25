@@ -23,7 +23,7 @@ cargo build --release
 ```
 BOT_TOKEN=токен бота @BotFather
 ADMIN_ID=ваш тг айди
-LOLZ_TOKEn=ваш лолз токен
+LOLZ_TOKEN=ваш лолз токен
 ```
 
 

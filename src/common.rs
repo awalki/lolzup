@@ -21,14 +21,3 @@ pub async fn send_message(
 
     Ok(())
 }
-
-pub fn escape_md(text: &str) -> String {
-    let reserved = [
-        "_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!",
-    ];
-    let mut escaped = text.to_string();
-    for char in reserved {
-        escaped = escaped.replace(char, &format!("\\{}", char));
-    }
-    escaped
-}
