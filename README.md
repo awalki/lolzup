@@ -11,6 +11,8 @@
 
 `/del thread_id - удаляет задачу из шедулера`
 
+`/list - active tasks`
+
 ## Сборка
 
 Убедитесь что у вас установлен Rust - https://rust-lang.org/learn/get-started/
