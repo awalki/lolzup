@@ -38,7 +38,7 @@ jobs:
       - name: Package Binaries
         shell: bash
         run: |
-          BIN_NAME="LolzUP"
+          BIN_NAME="LolzUpReborn"
           STAGING="release_assets"
           mkdir -p $STAGING
           
