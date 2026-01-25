@@ -1,2 +1,5 @@
 /target
 .env
+lolzup.db
+lolzup.db-shm
+lolzup.db-wal

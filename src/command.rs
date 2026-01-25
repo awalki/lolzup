@@ -1,5 +1,6 @@
 pub enum Command {
     Start,
+    List,
     New(String),
     Delete(String),
 }
@@ -19,6 +20,9 @@ impl Command {
             "/new" => {
                 let val = arg.ok_or("You have to specify an argument")?;
                 Ok(Command::New(val.to_string()))
+            },
+            "/list" => {
+                Ok(Command::List)
             }
             "/del" => {
                 let val = arg.ok_or("You have to specify an argument")?;

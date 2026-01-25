@@ -1,6 +1,6 @@
 [package]
 name = "LolzUpReborn"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 
 [dependencies]
@@ -10,9 +10,15 @@ reqwest = {version = "0.13.1", features = ["json"]}
 jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
 serde_json = "1.0.149"
 serde = { version = "1.0.228", features = ["derive"] }
-effectum = "0.7.0"
-time = "0.3.45"
 dotenvy = "0.15.7"
+thiserror = "2.0.18"
+anyhow = "1.0.100"
+sqlx = { version = "0.8.6", features = [ "runtime-tokio", "sqlite", "macros", "chrono" ] }
+chrono = {version = "0.4.43", features = ["serde"]}
+trait-variant = "0.1.2"
+async-trait = "0.1.89"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
 
 [profile.release]
 opt-level = 3

@@ -1,156 +1,91 @@
+pub mod bump;
 pub mod command;
 pub mod common;
+pub mod error;
 pub mod lolz;
+
 pub mod scheduler;
 
+use crate::bump::BumpService;
 use crate::command::Command;
-use crate::common::send_message;
-use crate::lolz::Lolz;
-use effectum::{Error, Job, JobRunner, JobState, Queue, RunningJob, Worker};
+use crate::common::{escape_md, send_message};
+use crate::error::LolzUpError;
+use crate::lolz::lolz::LolzHttpClient;
+use crate::scheduler::{Scheduler, Task};
+use chrono::{Timelike, Utc};
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::GetUpdatesParams;
 use frankenstein::types::{AllowedUpdate, Message};
 use frankenstein::updates::UpdateContent;
-use serde::{Deserialize, Serialize};
-use std::{env, fmt};
-use std::path::PathBuf;
+use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::{Sqlite, SqlitePool};
+use std::env;
 use std::sync::Arc;
-use time::OffsetDateTime;
+use tracing::info;
 
-pub struct JobContext {
-    queue: Arc<Queue>,
-    bot: Bot,
-    lolz: Lolz,
-}
-
-impl fmt::Debug for JobContext {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MyContext").finish()
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-struct BumpPayload {
-    thread_id: String,
-    chat_id: String,
-}
-
-async fn is_job_exists(context: &JobContext, thread_id: &str) -> bool {
-    let name = format!("bump_job_{}", thread_id);
-
-    match context.queue.get_jobs_by_name(name, 1).await {
-        Ok(jobs) => {
-            if let Some(job) = jobs.first() {
-                return job.state == JobState::Pending || job.state == JobState::Running;
-            }
-            false
-        }
-        Err(_) => false,
-    }
-}
-
-async fn schedule_bump_job(
-    context: &JobContext,
-    thread_id: String,
-    chat_id: String,
-    run_at_timestamp: i64,
-) -> Result<(), Error> {
-    if is_job_exists(context, &thread_id).await {
-        return Ok(());
-    }
-
-    let run_at = OffsetDateTime::from_unix_timestamp(run_at_timestamp)
-        .map_err(|_| Error::InvalidJobState("Invalid timestamp".to_string()))?;
-
-    let name = format!("bump_job_{}", thread_id);
-
-    Job::builder("bump_job")
-        .run_at(run_at)
-        .name(name)
-        .json_payload(&BumpPayload { thread_id, chat_id })?
-        .add_to(&context.queue)
-        .await?;
-
-    Ok(())
-}
-
-fn extract_run_at(thread_data: &serde_json::Value) -> Option<i64> {
-    thread_data["thread"]["permissions"]["bump"]["next_available_time"].as_i64()
-}
-
-async fn bump_job(job: RunningJob, context: Arc<JobContext>) -> Result<(), Error> {
-    let payload: BumpPayload = job.json_payload()?;
-
-    if let Err(e) = context
-        .lolz
-        .bump_thread(payload.thread_id.parse().unwrap())
-        .await
-    {
-        println!("Error bumping thread: {}", e);
-        return Err(Error::Timeout)
-    }
-
-    if let Ok(thread) = context
-        .lolz
-        .get_thread(payload.thread_id.parse().unwrap())
-        .await
-    {
-        if let Some(next_bump) = extract_run_at(&thread) {
-            schedule_bump_job(
-                &context,
-                payload.thread_id.clone(),
-                payload.chat_id.clone(),
-                next_bump,
-            )
-            .await?;
-        }
-    }
-
-    send_message(
-        payload.chat_id.parse().unwrap(),
-        "WORK WORK WORK",
-        context.bot.clone(),
-    )
-    .await;
-    Ok(())
+#[derive(Debug)]
+pub struct AppContext {
+    bot: Arc<Bot>,
+    pool: Arc<SqlitePool>,
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
-    let bot_token = env::var("BOT_TOKEN")
-        .expect("BOT_TOKEN must be set in .env");
-    let lolz_token = env::var("LOLZ_TOKEN")
-        .expect("LOLZ_TOKEN must be set in .env");
-    let admin_id: i64 = env::var("ADMIN_ID")
-        .expect("ADMIN_ID must be set")
-        .parse()
-        .expect("ADMIN_ID must be a valid integer");
+    let subscriber = tracing_subscriber::fmt()
+        .compact()
+        .with_file(true)
+        .with_line_number(true)
+        .with_thread_ids(true)
+        .with_target(false)
+        .finish();
 
-    let bot = Bot::new(&*bot_token);
+    tracing::subscriber::set_global_default(subscriber)?;
 
-    let lolz_client = Lolz::new(lolz_token);
+    info!("Starting UP LOLZ UP");
 
-    println!("Alles Bonita!");
+    let bot_token = env::var("BOT_TOKEN")?;
+    let lolz_token = env::var("LOLZ_TOKEN")?;
+    let admin_id: i64 = env::var("ADMIN_ID")?.parse()?;
 
-    let queue = Arc::from(Queue::new(&PathBuf::from("lolzup.db")).await.unwrap());
-    let a_job = JobRunner::builder("bump_job", bump_job).build();
-    let context = Arc::new(JobContext {
-        bot: bot.clone(),
-        queue: queue.clone(),
-        lolz: lolz_client.clone(),
-    });
-
-    let _worker = Worker::builder(&*queue, context.clone())
-        .max_concurrency(10)
-        .jobs([a_job])
-        .build();
-
+    let bot = Arc::from(Bot::new(&*bot_token));
     let mut update_params = GetUpdatesParams::builder()
         .allowed_updates(vec![AllowedUpdate::Message, AllowedUpdate::CallbackQuery])
         .build();
+
+    let options = SqliteConnectOptions::new()
+        .filename("lolzup.db")
+        .create_if_missing(true)
+        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal);
+    let pool = Arc::from(sqlx::SqlitePool::connect_with(options).await?);
+
+    sqlx::migrate!().run(&*pool).await?;
+
+    let lolz_client = LolzHttpClient::new(lolz_token)?;
+    let bump_service = Arc::from(BumpService::new(lolz_client));
+    let scheduler = Scheduler::new(
+        bump_service.clone(),
+        pool.clone(),
+        bot.clone(),
+        Arc::from(admin_id.clone()),
+    )
+    .await?;
+
+    tokio::spawn(async move {
+        if let Err(e) = scheduler.run_scheduler().await {
+            eprintln!("Error while initiating scheduler: {:?}", e);
+        }
+        info!("Scheduler is active")
+    });
+
+    let context = Arc::from(AppContext {
+        bot: bot.clone(),
+        pool: pool.clone(),
+    });
+
+    info!("Telegram polling is active");
 
     loop {
         if let Ok(response) = bot.get_updates(&update_params).await {
@@ -161,119 +96,132 @@ async fn main() {
                         continue;
                     }
 
-                    handle_message(message, &context).await;
+                    handle_message(message, context.clone()).await?;
                 }
                 update_params.offset = Some(i64::from(update.update_id) + 1);
+                info!("Got telegram update")
             }
         }
     }
 }
 
-async fn process_delete(message: Box<Message>, arg: String, context: Arc<JobContext>) {
-    let chat_id = message.chat.id;
-    let bot = context.bot.clone();
-
-    if arg.parse::<i64>().is_err() {
-        send_message(chat_id, "Please provide a valid numeric thread ID", bot).await;
-        return;
-    }
-
-    match delete_job(&context, &arg).await {
-        Ok(true) => {
-            send_message(chat_id, format!("Task for thread {} deleted", arg), bot).await;
-        }
-        Ok(false) => {
-            send_message(chat_id, "No active task found for this thread", bot).await;
-        }
-        Err(_) => {
-            send_message(chat_id, "⚠Error while trying to delete the task", bot).await;
-        }
-    }
-}
-
-async fn delete_job(context: &JobContext, thread_id: &str) -> Result<bool, Error> {
-    let name = format!("bump_job_{}", thread_id);
-
-    let job = context.queue.get_jobs_by_name(name, 1).await?;
-
-    if job.is_empty() {
-        return Ok(false);
-    }
-
-    context.queue.cancel_job(job[0].id).await?;
-
-    Ok(true)
-}
-
-async fn handle_message(message: Box<Message>, context: &Arc<JobContext>) {
+async fn handle_message(
+    message: Box<Message>,
+    context: Arc<AppContext>,
+) -> Result<(), LolzUpError> {
     let text = match &message.text {
         Some(t) if t.starts_with('/') => t,
-        _ => return,
+        _ => return Ok(()),
     };
 
     let bot = context.bot.clone();
     match Command::parse(text) {
         Ok(Command::Start) => {
-            send_message(message.chat.id, "Welcome to LolzUP Reborn\n\nCommands:\n\\- `/new {thread_id}`\n\\- `/del {thread_id}`", bot).await;
+            send_message(message.chat.id, "Welcome to LolzUP Reborn\n\nCommands:\n\\- `/new {thread_id}`\n\\- `/del {thread_id}`\n\\- `/list`", bot).await?;
+        }
+        Ok(Command::List) => {
+            process_list(message, context).await?;
         }
         Ok(Command::New(id_str)) => {
-            process_new(message, id_str, context.clone()).await;
+            process_new(message, id_str, context.clone()).await?;
         }
         Ok(Command::Delete(id_str)) => {
-            process_delete(message, id_str, context.clone()).await;
+            process_delete(message, id_str, context.clone()).await?;
         }
-        Err(_) => {
-            process_error(*message, bot).await;
+        _ => {
+            process_error(*message, bot).await?;
         }
     }
+
+    Ok(())
 }
 
-async fn process_new(message: Box<Message>, arg: String, context: Arc<JobContext>) {
+async fn process_delete(
+    message: Box<Message>,
+    arg: String,
+    context: Arc<AppContext>,
+) -> Result<(), LolzUpError> {
+    let result = sqlx::query("DELETE FROM tasks WHERE thread_id = (?)")
+        .bind(arg)
+        .execute(&*context.pool)
+        .await?;
+
+    if result.rows_affected() == 0 {
+        send_message(
+            message.chat.id,
+            "Can't delete: Task not found",
+            context.bot.clone(),
+        )
+        .await?;
+    } else {
+        send_message(message.chat.id, "Delete successfull", context.bot.clone()).await?;
+    }
+
+    Ok(())
+}
+
+async fn process_list(message: Box<Message>, context: Arc<AppContext>) -> Result<(), LolzUpError> {
+    let tasks = sqlx::query_as::<Sqlite, Task>("SELECT id, thread_id, run_at FROM tasks")
+        .fetch_all(&*context.pool)
+        .await?;
+
+    let response_text = if tasks.is_empty() {
+        "No active tasks found".to_string()
+    } else {
+        let task_list = tasks
+            .iter()
+            .map(|task| {
+                let link = format!("https://lolz.live/threads/{}", task.thread_id);
+                let time = task.run_at.naive_local().to_string();
+
+                format!("{} \\- Will bump at {}", escape_md(&link), escape_md(&time))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        format!(
+            "Active tasks:\n\n{}\n\nHint: use /del \\[thread\\_id\\] to delete a task",
+            task_list
+        )
+    };
+
+    send_message(message.chat.id, response_text, context.bot.clone()).await?;
+
+    Ok(())
+}
+
+async fn process_new(
+    message: Box<Message>,
+    arg: String,
+    context: Arc<AppContext>,
+) -> Result<(), LolzUpError> {
     let chat_id = message.chat.id;
     let bot = context.bot.clone();
 
     let Ok(thread_id_int) = arg.parse::<i64>() else {
-        send_message(chat_id, "Only numbers", bot).await;
-        return;
+        send_message(chat_id, "Only numbers", bot.clone()).await?;
+        return Ok(());
     };
 
-    if is_job_exists(&context, &arg).await {
-        send_message(chat_id, "This thread is already being tracked", bot).await;
-        return;
+    let run_at = Utc::now();
+
+    let result = sqlx::query("INSERT INTO tasks (thread_id, run_at) VALUES (?, ?)")
+        .bind(thread_id_int)
+        .bind(run_at)
+        .execute(&*context.pool)
+        .await?;
+
+    if result.rows_affected() == 0 {
+        send_message(chat_id, "This task already exists", bot.clone()).await?;
+    } else {
+        send_message(chat_id, "Task added successfully", bot.clone()).await?;
     }
 
-    match context.lolz.get_thread(thread_id_int).await {
-        Ok(data) => {
-            let next_bump = extract_run_at(&data);
-
-            match next_bump {
-                None => {
-                    if context.lolz.bump_thread(thread_id_int).await.is_ok() {
-                        let updated = context.lolz.get_thread(thread_id_int).await.unwrap();
-                        if let Some(new_time) = extract_run_at(&updated) {
-                            let _ = schedule_bump_job(&context, arg, chat_id.to_string(), new_time)
-                                .await;
-                        }
-                        send_message(chat_id, "First bump done Scheduled next", bot).await;
-                    }
-                }
-                Some(timestamp) => {
-                    let _ = schedule_bump_job(&context, arg, chat_id.to_string(), timestamp).await;
-                    send_message(
-                        chat_id,
-                        format!("Thread queued, Next bump at: {}", timestamp),
-                        bot,
-                    )
-                    .await;
-                }
-            }
-        }
-        Err(_) => {
-            send_message(chat_id, "Invalid thread id or API error", bot).await;
-        }
-    }
+    Ok(())
 }
 
-async fn process_error(message: Message, bot: Bot) {
-    send_message(message.chat.id, "Command error or invalid format", bot).await;
+async fn process_error(message: Message, bot: Arc<Bot>) -> Result<(), LolzUpError> {
+    send_message(message.chat.id, "Command error or invalid format", bot).await?;
+
+    Ok(())
 }
